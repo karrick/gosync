@@ -112,4 +112,6 @@ are not needed for their domain space.
 
 While I chew on that question for a while, this is my attempt to
 provide semaphores using the bare minimum but already avaiable
-structures in Go's standard library.
+structures in Go's standard library.  Namely I chose to implement
+semaphores on top of `sync.Cond`, which has access to and uses the
+runtime scheduler to prevent polling.
