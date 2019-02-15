@@ -217,15 +217,15 @@ The semaphore library available at https://github.com/golang/sync is
 built on top of channels, `context.Context`, `sync.Locker`, and
 `container/list.List`.  `context.Context` itself is built on channels,
 spawning new go-routines with channels to monitor `context.Done`
-status at various points in execution.  This library is designed to be
+status at various points in execution.  That library is designed to be
 used at a very high-level of abstraction, and is suitable for many
 uses.  However, if you just want a simple semaphore, which is already
-present in the Go runtime, when you use this library, the resultant
-code will spawn go-routines and creates channels at multiple places,
-when none of it might be needed by your algorithm.
+present in the Go runtime, when you use it, the application will spawn
+go-routines and creates channels at multiple places, when none of it
+might be needed by your algorithm.
 
-This library is a minimal semaphore library written on nothing but
-`sync.Cond`, which use the Go runtime semaphore code that is
-integrated with the scheduler.  There are no channels created and no
-extra go-routines spawned to use semaphores, other than those created
-by the application code that might use this library.
+The library in this repository is a minimal semaphore library written
+on nothing but `sync.Cond`, which use the Go runtime semaphore code
+that is integrated with the scheduler.  There are no channels created
+and no extra go-routines spawned to use semaphores, other than those
+created by the application code that might use this library.
