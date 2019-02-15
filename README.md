@@ -192,6 +192,8 @@ private and not usable by code written outside the scope of the
 language runtime and standard library.  So why not expose it for
 others to leverage?
 
+## The Need for Semaphore Support
+
 People want semaphores in Go because it's a general case and
 performant synchronization tool.  There is even a Go library providing
 semaphores, https://github.com/golang/sync, but surprisingly it builds
