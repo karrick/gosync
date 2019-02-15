@@ -25,8 +25,8 @@ func ExampleSemaphore() {
 		stage2Ready.Signal()
 	}()
 
-	stage1Ready.Signal()
-	stage3Ready.Wait()
+	stage1Ready.Signal() // <-- this step triggers the process
+	stage3Ready.Wait()   // <-- and this step waits for it to all complete
 
 	fmt.Println("n", n)
 	// Output: n 6
