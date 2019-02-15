@@ -229,3 +229,8 @@ on nothing but `sync.Cond`, which use the Go runtime semaphore code
 that is integrated with the scheduler.  There are no channels created
 and no extra go-routines spawned to use semaphores, other than those
 created by the application code that might use this library.
+
+I am not implying that semaphores are the best synchronization
+primitive for all concurrent applications, but rather that, like
+mutexes and condition variables, are useful at times.  This library is
+meant to be used for those times when semaphores are useful.
