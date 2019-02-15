@@ -50,7 +50,7 @@ them, and sometimes using one of the others.  To put it a different
 way--although admittedly a bit of a stretch--sometimes a programmer
 wants to use `Print`, sometimes `Printf`, and sometimes `Println`.
 
-### Fundamental Requirements
+### Fundamental Requirements for Synchronizing Concurrent Algorithms
 
 Each of these concurrency primitives requires hardware support of
 atomic operations.  On uniprocessor architectures, suspending hardware
@@ -112,7 +112,7 @@ scheduled because it is algorithmically blocked, and when a thread is
 not algorithmically blocked and is eligible for scheduling.  In other
 words, when working with OS threads, we need to have concurrency
 primitives that work with the OS scheduler, and when working with
-go-routines, weneed to have concurrency primitives that work with the
+go-routines, we need to have concurrency primitives that work with the
 Go scheduler.  This is an important point.  Just because all
 concurrency primitives require atomic operations, which we have access
 to via the `atomic` Go standard library, one still needs to work with
@@ -120,6 +120,8 @@ the scheduler in order to write concurrent software that does not
 poll.  How do we interact with the scheduler to notify it that a
 thread is either blocked or eligible according to our algorithm?  We
 use mutexes, condition variables, and semaphores.
+
+## Go Concurrency
 
 Go provides access to mutexes and condition variables that both work
 with the scheduler to prevent polling.  But it does not provide access
@@ -135,55 +137,60 @@ condition variables, not because the implementations are bad.  Quite
 the reveerse: Go's mutexes and condition variables are very well
 implemented.  They are efficient and well integrated with the runtime
 scheduler.  However, many people have stated that because writing
-concurrent software is difficult, all developers should write software
-that uses concurrency primitives at a higher-level of abstraction than
-mutexes, condition variables, and semaphores.  For this reason, the Go
-community champions channels as its high level method of designing and
-programming concurrent algorithms.  Mutexes have been provided in Go
-as long as I have worked with it, but condition variables were more
-recently added to the `sync` standard library.  This might suggest
-that the intention is to have everyone use channels for their
-concurrency needs, and eschew low-level and mid-level concurrency
-primitives.  Under the covers, Go provides a very easy to use
+concurrent software is difficult, all application developers should
+write software that uses concurrency primitives at a higher-level of
+abstraction than mutexes, condition variables, and semaphores.  For
+this reason, the Go community champions channels as its high level
+method of designing and programming concurrent algorithms.  Despite
+the availability of channels since Go's initial public release,
+mutexes have been provided in Go as long as I have worked with it, and
+condition variables were more recently added to the `sync` standard
+library.  This might suggest that the intention is to have application
+developers use channels for their concurrency needs, and eschew
+low-level and mid-level concurrency primitives, leaving those to the
+realm of the language implementors rather than the application
+developers.  Under the covers, Go provides a very easy to use
 concurrency primitive called channels, that itself will be written
 with the required low-level and mid-level concurrency primitives.
 
 Channels are supposed to be simple to use, reliable, and fast.  While
 they do a great job at accomplishing these goals, numerous benchmarks
 demonstrate that channels are still lagging behind in the performance
-category.  This is especially true when benchmarked against the
-provided mid-level concurrency primitives such as mutexes and
-condition variables.  Furthermore, more and more of the standard
+category.  This is especially true when benchmarked against mutexes
+and condition variables.  Furthermore, more and more of the standard
 library is being updated and leveraging channels in their
-implementation.  This is unfortunate, at least in my opinion, because
-channels are significantly less performant than mid-level concurrency
-primitives.  The performance difference is not necessarily surprising.
-If channels are implented at a higher level of abstraction on top of
-the mid-level primitives, then it stands to reason that channels can
-be no faster than those primitives they are built upon.
+implementation.  This is unfortunate, because channels are
+demonstratively less performant than mid-level concurrency primitives.
+The performance difference is not necessarily surprising.  If channels
+are implented at a higher level of abstraction than the mid-level
+primitives, then it stands to reason that channels can be no faster
+than those primitives they are built upon.
 
 Which brings me to the crux of the problem.  Go does not only attract
-the novice programmer, but advanced programmers as well.  When a
-programmer implements an algorithm using channels, and it's one
-quarter or one tenth the speed of the same algorithm implmented using
-locks, then the programmer will likely abandon the algorithm that uses
-channels in deference to the faster code.
+the novice programmer, but advanced programmers as well.  This should
+not be a surprise as Go declares itself as a systems programming
+language.  However, when a programmer implements an algorithm using
+channels, and it's one quarter or one tenth the speed of the same
+algorithm implmented using locks, then the programmer will likely
+abandon the algorithm that uses channels in deference to the faster
+code.
 
 Go encourages developers to stick to using channels, but it concedes
 the utility of mid-level concurrency primitives and provides
 `sync.Mutex`, `sync.RWMutex`, `sync.WaitGroup`, `sync.Cond`, and
 similar concurrency primitives.  Go also provides atomic low-level
 primitives in the standard library in the `sync/atomic` package.
-Oddly, semaphores are notably absent.  Why is this?  Are semaphores
-less efficient than mutexes or condition variables?  Maybe, depending
-on their implementation.  However, the Go language itself has an
-implementation of semaphores in its runtime.  This semaphore
-implementation is private and not usable by code written outside the
-scope of the language runtime and standard library.  This
-implementation is actually what `sync.Cond` is built upon.  This
-private semaphore code is the basis for other Go concurrency
-primitives because it is elegant, fast, and reliable.  So why not
-expose it for others to leverage?
+Semaphores are notably absent, but why?  Are semaphores less efficient
+than mutexes or condition variables?  Maybe, depending on their
+implementation.  However, the Go language itself has an implementation
+of semaphores in its runtime, and that runtime implmentation of
+semaphores is used to implement both `sync.Mutex` and `sync.Cond` in
+the standard library.  This private semaphore code is the basis for
+other Go concurrency primitives because it is elegant, fast, and
+reliable.  However, the runtime implementation of semaphores is
+private and not usable by code written outside the scope of the
+language runtime and standard library.  So why not expose it for
+others to leverage?
 
 People want semaphores in Go because it's a general case and
 performant synchronization tool.  There is even a Go library providing
@@ -191,7 +198,7 @@ semaphores, https://github.com/golang/sync, but surprisingly it builds
 semaphores on top of channels rather than on either of the other two
 more performant concurrency primitives available in Go.  Channels are
 a beutiful abstraction, but the fact remains that at least in my
-benchmarks, they are slower than mutexes and condition variables.
+benchmarks, they are far slower than mutexes and condition variables.
 
 To recap, at the bottom of the concurrency dependency tree are
 hardware atomic operations, then integration with the thread
@@ -200,10 +207,9 @@ variables, and semaphores.  In the Go runtime, there is private
 semaphore and mutex structures that use the low-level atomic
 primitives.  On top of these two private structures the Go standard
 library implements `sync.Mutex`, `sync.Cond`, giving application
-developers access to mutexes and condition variables.  Also on top of
-these private structures Go implments channels, giving application
-developers access to high-level synchronization for concurrent
-software development.
+developers access to mutexes and condition variables, and channels,
+giving application developers access to high-level synchronization for
+concurrent software development.
 
 The semaphore library available at https://github.com/golang/sync is
 built on top of channels, `context.Context`, `sync.Locker`, and
@@ -217,8 +223,7 @@ code will spawn go-routines and creates channels at multiple places,
 when none of it might be needed by your algorithm.
 
 This library is a minimal semaphore library written on nothing but
-`sync.Locker` and `sync.Cond`, both of which use the Go runtime
-semaphore code that is integrated with the Go scheduler.  There are no
-channels created and no extra go-routines spawned to use semaphores,
-other than those created by the application code that might use this
-library.
+`sync.Cond`, which use the Go runtime semaphore code that is
+integrated with the scheduler.  There are no channels created and no
+extra go-routines spawned to use semaphores, other than those created
+by the application code that might use this library.
