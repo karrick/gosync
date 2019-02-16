@@ -73,6 +73,7 @@ func (s *Semaphore) Wait() {
 	}
 	s.value--
 	s.cv.L.Unlock()
+	s.cv.Signal()
 }
 
 // noCopy may be embedded into structs which must not be copied after the first
